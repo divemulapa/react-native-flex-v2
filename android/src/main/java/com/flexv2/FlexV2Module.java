@@ -1,94 +1,82 @@
 package com.flexv2;
 
-import com.facebook.react.bridge.*;
+import androidx.annotation.NonNull;
 import com.cybersource.flex.android.CaptureContext;
+import com.cybersource.flex.android.FlexException;
 import com.cybersource.flex.android.FlexService;
 import com.cybersource.flex.android.TransientToken;
-import org.json.JSONObject;
+import com.cybersource.flex.android.TransientTokenCreationCallback;
+import com.facebook.react.bridge.Callback;
+import com.facebook.react.bridge.Promise;
+import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.bridge.ReactContextBaseJavaModule;
+import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableMap;
 
-public class FlexV2ReactNativeModule extends ReactContextBaseJavaModule {
+import java.util.HashMap;
+import java.util.Map;
 
-  public FlexV2ReactNativeModule(ReactApplicationContext reactContext) {
+public class FlexV2Module extends ReactContextBaseJavaModule {
+  private final ReactApplicationContext reactContext;
+
+  public FlexV2Module(ReactApplicationContext reactContext) {
     super(reactContext);
+    this.reactContext = reactContext;
   }
 
+  @NonNull
   @Override
   public String getName() {
-    return "ReactNativeFlexV2";
+    return "FlexV2Module";
   }
 
   @ReactMethod
-  public void createToken(ReadableMap options, Promise promise) {
-    FlexService flexService = FlexService.getInstance();
-
-    ReadableMap cardInfo = options.hasKey("cardInfo") ? options.getMap("cardInfo") : null;
-    if (cardInfo == null) {
-      promise.reject("INVALID_OPTIONS", "Card info is missing");
-      return;
-    }
-
-    String cardNumber = cardInfo.hasKey("cardNumber") ? cardInfo.getString("cardNumber") : "";
-    String cardType = cardInfo.hasKey("cardType") ? cardInfo.getString("cardType") : "";
-    String cardExpirationMonth = cardInfo.hasKey("cardExpirationMonth") ? cardInfo.getString("cardExpirationMonth") : "";
-    String cardExpirationYear = cardInfo.hasKey("cardExpirationYear") ? cardInfo.getString("cardExpirationYear") : "";
-    String cardCVV = cardInfo.hasKey("cardCVV") ? cardInfo.getString("cardCVV") : "";
-    String nameOnCard = cardInfo.hasKey("nameOnCard") ? cardInfo.getString("nameOnCard") : "";
-
-    String kid = options.hasKey("kid") ? options.getString("kid") : "";
-    ReadableMap keystore = options.hasKey("keystore") ? options.getMap("keystore") : null;
-    if (keystore == null) {
-      promise.reject("INVALID_OPTIONS", "Keystore is missing");
-      return;
-    }
-    String encryptionType = options.hasKey("encryptionType") ? options.getString("encryptionType") : "rsaoaep256";
-
-    TokenizeOptions tokenizeOptions = new TokenizeOptions();
-    tokenizeOptions.setCardNumber(cardNumber);
-    tokenizeOptions.setCardType(cardType);
-    tokenizeOptions.setCardExpirationMonth(cardExpirationMonth);
-    tokenizeOptions.setCardExpirationYear(cardExpirationYear);
-    tokenizeOptions.setCardCVV(cardCVV);
-    tokenizeOptions.setNameOnCard(nameOnCard);
-    tokenizeOptions.setKid(kid);
-    tokenizeOptions.setKeystore(convertMapToKeystore(keystore));
-    tokenizeOptions.setEncryptionType(encryptionType);
-
-    flexService.createTokenAsyncTask(
-      tokenizeOptions,
-      new TransientToken.CreateTokenCallback() {
-        @Override
-        public void onSuccess(TransientToken transientToken) {
-          WritableMap resultMap = Arguments.createMap();
-          resultMap.putString("token", transientToken.getToken());
-          promise.resolve(resultMap);
-        }
-
-        @Override
-        public void onFailure(Exception error) {
-          promise.reject("CREATE_TOKEN_ERROR", error.getMessage(), error);
-        }
-      }
-    );
-  }
-
-  private Keystore convertMapToKeystore(ReadableMap keystoreMap) {
-    Keystore keystore = new Keystore();
-    // Implement the conversion logic here based on your Keystore class structure
-    // This is a placeholder implementation
-    // For example:
-    // keystore.setSomeProperty(keystoreMap.getString("someProperty"));
-    return keystore;
-  }
-
-  @ReactMethod
-  public void getDeviceFingerprint(String organizationId, String sessionId, Promise promise) {
-    FlexService flexService = FlexService.getInstance();
-
+  public void createToken(ReadableMap options, Callback callBack) {
     try {
-      String fingerprint = flexService.getDeviceFingerprint(organizationId, sessionId);
-      promise.resolve(fingerprint);
+      FlexService flexService = FlexService.getInstance();
+
+      // Extract jwt and cardInfo from options
+      String serverJWT = options.getString("jwt");
+      ReadableMap cardInfo = options.getMap("cardInfo");
+
+      // Build payload with nested structure
+      Map<String, Object> payload = this.getPayloadData(cardInfo);
+
+      // Get capture context from the jwt(MBS service)
+      CaptureContext cc = CaptureContext.fromJwt(serverJWT)
+
+      flexService.createTokenAsyncTask(cc, payload, new TransientTokenCreationCallback() {
+        @Override
+        public void onSuccess(TransientToken tokenResponse) {
+          callBack.invoke(null, tokenResponse.getId());
+        }
+
+        @Override
+        public void onFailure(FlexException error) {
+          callBack.invoke("TOKENIZATION_FAILED", error.getMessage());
+        }
+      });
+
     } catch (Exception e) {
-      promise.reject("FINGERPRINT_ERROR", e.getMessage(), e);
+      callBack.invoke("TOKENIZATION_FAILED", e.getMessage());
     }
   }
+
+  private Map<String, Object> getPayloadData(ReadableMap cardInfo) {
+    Map<String, Object> sad = new HashMap<>();
+
+    // Extract card details from cardInfo map
+    String cardNumber = cardInfo.getString("cardNumber");
+    String expiryMonth = cardInfo.getString("cardExpirationMonth");
+    String expiryYear = cardInfo.getString("cardExpirationYear");
+    String cvv = cardInfo.getString("cardCVV");
+
+    sad.put("paymentInformation.card.number", cardNumber);
+    sad.put("paymentInformation.card.securityCode", cvv);
+    sad.put("paymentInformation.card.expirationMonth", expiryMonth);
+    sad.put("paymentInformation.card.expirationYear", expiryYear);
+
+    return sad;
+  }
+
 }
