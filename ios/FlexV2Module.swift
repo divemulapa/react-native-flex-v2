@@ -23,47 +23,33 @@ class FlexV2Module: NSObject, RCTBridgeModule {
   /// - Parameters:
   ///   - options: A dictionary containing "jwt" and "cardInfo".
   ///   - callback: A callback block where the first element is an error (or NSNull if none) and the second is the token ID.
-  @objc func createToken(_ options: NSDictionary, callback: @escaping RCTResponseSenderBlock) {
-      let service = FlexService()
+  @objc(createToken:withCallback:)
+  func createToken(_ options: NSDictionary, callback: @escaping RCTResponseSenderBlock) {
+    let service = FlexService()
     // Extract the JWT and card information
-    guard let jwt = options["jwt"] as? String,
-          let cardInfo = options["cardInfo"] as? NSDictionary,
-          let cardNumber = cardInfo["cardNumber"] as? String,
-          let expiryMonth = cardInfo["cardExpirationMonth"] as? String,
-          let expiryYear = cardInfo["cardExpirationYear"] as? String,
-          let cvv = cardInfo["cardCVV"] as? String else {
-      callback(["TOKENIZATION_FAILED", "Invalid parameters"])
-      return
-    }
+    let captureContext = options["jwt"] as! String
+    let cardInfo = options["cardInfo"] as! NSDictionary
+    let cardNumber = cardInfo["cardNumber"] as! String
+    let expiryMonth = cardInfo["cardExpirationMonth"] as! String
+    let expiryYear = cardInfo["cardExpirationYear"] as! String
+    let cvv = cardInfo["cardCVV"] as! String
 
     // Build payload with nested structure
-    let payload: [String: Any] = [
-      "paymentInformation.card.number": cardNumber,
-      "paymentInformation.card.securityCode": cvv,
-      "paymentInformation.card.expirationMonth": expiryMonth,
-      "paymentInformation.card.expirationYear": expiryYear
-    ]
+    var payload = [String: String]()
+    payload["paymentInformation.card.number"] = cardNumber
+    payload["paymentInformation.card.securityCode"] = cvv
+    payload["paymentInformation.card.expirationMonth"] = expiryMonth
+    payload["paymentInformation.card.expirationYear"] = expiryYear
 
-    do {
-      // The capture context is actually a JWT itself
-      let captureContext = jwt
-
-      // Create the token asynchronously.
-      // Here, we assume FlexService has a singleton `shared` and a method `createToken`
-      // that accepts the capture context, payload, and a completion handler.
     service.createTransientToken(from: captureContext, data: payload) { (result) in
-        switch result {
+      switch result {
         case .success(let tokenResponse):
           // Pass the token ID back to JavaScript (using NSNull for no error)
-          callback([NSNull(), tokenResponse.id])
+          callback([NSNull(), tokenResponse])
         case .failure(let error):
           // On failure, pass an error code and message.
           callback(["TOKENIZATION_FAILED", error.localizedDescription])
-        }
       }
-    } catch let error {
-      // Handle any errors thrown during the creation of the capture context.
-      callback(["TOKENIZATION_FAILED", error.localizedDescription])
     }
   }
 }
