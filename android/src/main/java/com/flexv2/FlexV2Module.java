@@ -62,18 +62,23 @@ public class FlexV2Module extends ReactContextBaseJavaModule {
   }
 
   private Map<String, Object> getPayloadData(ReadableMap cardInfo) {
-    Map<String, Object> sad = new HashMap<>();
-
     // Extract card details from cardInfo map
     String cardNumber = cardInfo.getString("cardNumber");
     String expiryMonth = cardInfo.getString("cardExpirationMonth");
     String expiryYear = cardInfo.getString("cardExpirationYear");
     String cvv = cardInfo.getString("cardCVV");
 
-    sad.put("paymentInformation.card.number", cardNumber);
-    sad.put("paymentInformation.card.securityCode", cvv);
-    sad.put("paymentInformation.card.expirationMonth", expiryMonth);
-    sad.put("paymentInformation.card.expirationYear", expiryYear);
+    Map<String, Object> card = new HashMap<>();
+    card.put("number", cardNumber);
+    card.put("securityCode", cvv);
+    card.put("expirationMonth", expiryMonth);
+    card.put("expirationYear", expiryYear);
+
+    Map<String, Object> paymentInformation = new HashMap<>();
+    paymentInformation.put("card", card);
+
+    Map<String, Object> sad = new HashMap<>();
+    sad.put("paymentInformation", paymentInformation);
 
     return sad;
   }
