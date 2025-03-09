@@ -14,7 +14,7 @@ public class FlexV2Package implements ReactPackage {
   @Override
   public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
     List<NativeModule> modules = new ArrayList<>();
-    modules.add(new FlexV2ReactNativeModule(reactContext));
+    modules.add(new FlexV2Module(reactContext));
     return modules;
   }
 

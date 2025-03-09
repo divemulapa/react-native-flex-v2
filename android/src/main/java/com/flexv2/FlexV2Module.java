@@ -7,7 +7,6 @@ import com.cybersource.flex.android.FlexService;
 import com.cybersource.flex.android.TransientToken;
 import com.cybersource.flex.android.TransientTokenCreationCallback;
 import com.facebook.react.bridge.Callback;
-import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
@@ -43,7 +42,7 @@ public class FlexV2Module extends ReactContextBaseJavaModule {
       Map<String, Object> payload = this.getPayloadData(cardInfo);
 
       // Get capture context from the jwt(MBS service)
-      CaptureContext cc = CaptureContext.fromJwt(serverJWT)
+      CaptureContext cc = CaptureContext.fromJwt(serverJWT);
 
       flexService.createTokenAsyncTask(cc, payload, new TransientTokenCreationCallback() {
         @Override
