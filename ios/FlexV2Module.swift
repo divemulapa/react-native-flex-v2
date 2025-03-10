@@ -24,31 +24,38 @@ class FlexV2Module: NSObject, RCTBridgeModule {
   ///   - options: A dictionary containing "jwt" and "cardInfo".
   ///   - callback: A callback block where the first element is an error (or NSNull if none) and the second is the token ID.
   @objc(createToken:withCallback:)
-  func createToken(_ options: NSDictionary, callback: @escaping RCTResponseSenderBlock) {
+  func createToken(_ options: NSDictionary, withCallback callback: @escaping RCTResponseSenderBlock) {
     let service = FlexService()
     // Extract the JWT and card information
     let captureContext = options["jwt"] as! String
     let cardInfo = options["cardInfo"] as! NSDictionary
-    let cardNumber = cardInfo["cardNumber"] as! String
-    let expiryMonth = cardInfo["cardExpirationMonth"] as! String
-    let expiryYear = cardInfo["cardExpirationYear"] as! String
-    let cvv = cardInfo["cardCVV"] as! String
+    let cardNumber = cardInfo["number"] as! String
+    let expiryMonth = cardInfo["expiryMonth"] as! String
+    let expiryYear = cardInfo["expiryYear"] as! String
+    let cvv = cardInfo["cvv"] as! String
 
     // Build payload with nested structure
     var payload = [String: String]()
-    payload["paymentInformation.card.number"] = cardNumber
-    payload["paymentInformation.card.securityCode"] = cvv
-    payload["paymentInformation.card.expirationMonth"] = expiryMonth
-    payload["paymentInformation.card.expirationYear"] = expiryYear
+    payload["number"] = cardNumber
+    payload["securityCode"] = cvv
+    payload["expirationMonth"] = expiryMonth
+    payload["expirationYear"] = expiryYear
 
     service.createTransientToken(from: captureContext, data: payload) { (result) in
       switch result {
         case .success(let tokenResponse):
           // Pass the token ID back to JavaScript (using NSNull for no error)
-          callback([NSNull(), tokenResponse])
+          callback([NSNull(), tokenResponse.token])
         case .failure(let error):
           // On failure, pass an error code and message.
-          callback(["TOKENIZATION_FAILED", error.localizedDescription])
+
+          let status = error.responseStatus.status
+          switch status {
+          case 3000:
+              print(error.responseStatus.message)
+          default:
+              callback(["UNKNOWN_ERROR", error.localizedDescription])
+          }
       }
     }
   }
