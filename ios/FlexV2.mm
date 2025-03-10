@@ -2,9 +2,7 @@
 
 @interface RCT_EXTERN_MODULE(FlexV2Module, NSObject)
 
-RCT_EXTERN_METHOD(multiply:(float)a withB:(float)b
-                 withResolver:(RCTPromiseResolveBlock)resolve
-                 withRejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(createToken:(NSDictionary *)options callback:(RCTResponseSenderBlock)callback)
 
 + (BOOL)requiresMainQueueSetup
 {
