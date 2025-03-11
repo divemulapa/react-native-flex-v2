@@ -74,13 +74,7 @@ public class FlexV2Module extends ReactContextBaseJavaModule {
     card.put("expirationMonth", expiryMonth);
     card.put("expirationYear", expiryYear);
 
-    Map<String, Object> paymentInformation = new HashMap<>();
-    paymentInformation.put("card", card);
-
-    Map<String, Object> sad = new HashMap<>();
-    sad.put("paymentInformation", paymentInformation);
-
-    return sad;
+    return card;
   }
 
 }
