@@ -47,7 +47,8 @@ public class FlexV2Module extends ReactContextBaseJavaModule {
       flexService.createTokenAsyncTask(cc, payload, new TransientTokenCreationCallback() {
         @Override
         public void onSuccess(TransientToken tokenResponse) {
-          callBack.invoke(null, tokenResponse.getId());
+          String token = tokenResponse.getEncoded();
+          callBack.invoke(null, token);
         }
 
         @Override
@@ -63,18 +64,19 @@ public class FlexV2Module extends ReactContextBaseJavaModule {
 
   private Map<String, Object> getPayloadData(ReadableMap cardInfo) {
     // Extract card details from cardInfo map
-    String cardNumber = cardInfo.getString("cardNumber");
-    String expiryMonth = cardInfo.getString("cardExpirationMonth");
-    String expiryYear = cardInfo.getString("cardExpirationYear");
-    String cvv = cardInfo.getString("cardCVV");
+    String cardNumber = cardInfo.getString("number");
+    String expiryMonth = cardInfo.getString("expiryMonth");
+    String expiryYear = cardInfo.getString("expiryYear");
+    String cvv = cardInfo.getString("cvv");
 
-    Map<String, Object> card = new HashMap<>();
-    card.put("number", cardNumber);
-    card.put("securityCode", cvv);
-    card.put("expirationMonth", expiryMonth);
-    card.put("expirationYear", expiryYear);
+    // Build payload with nested structure
+    Map<String, Object> payload = new HashMap<>();
+    payload.put("number", cardNumber);
+    payload.put("securityCode", cvv);
+    payload.put("expirationMonth", expiryMonth);
+    payload.put("expirationYear", expiryYear);
 
-    return card;
+    return payload;
   }
 
 }
