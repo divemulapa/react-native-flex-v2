@@ -9,26 +9,34 @@ Pod::Spec.new do |s|
   s.summary          = package["description"]
   s.homepage         = package["homepage"]
   s.license          = package["license"]
-  # Ensure authors is an array to satisfy CocoaPods DSL
   s.authors          = [package["author"]]
-
   s.platforms        = { :ios => min_ios_version_supported }
+
   s.source           = {
     :git => "https://github.com/divemulapa/react-native-flex-v2.git",
     :tag => "#{s.version}"
   }
 
   s.source_files     = "ios/**/*.{h,m,mm,swift}"
-  s.dependency       "flex-api-ios-sdk"
+  s.requires_arc     = true
+  s.static_framework = true
+  s.module_name      = "FlexV2"
 
-  # Always apply Folly and C++17 settings
-  s.compiler_flags     = folly_compiler_flags
+  s.dependency       "flex-api-ios-sdk", :modular_headers => true
+
   s.pod_target_xcconfig = {
-    "HEADER_SEARCH_PATHS"         => '"$(PODS_ROOT)/boost"',
-    "OTHER_CPLUSPLUSFLAGS"        => folly_compiler_flags,
-    "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
-    "CLANG_CXX_LIBRARY"           => "libc++"
+    "HEADER_SEARCH_PATHS" => [
+      '"$(PODS_ROOT)/boost"',
+      '"$(SDKROOT)/usr/include"',
+      '"$(SRCROOT)/../node_modules/react-native/ReactCommon/jsinspector-modern"'
+    ].join(" "),
+    "USER_HEADER_SEARCH_PATHS"     => "$(SDKROOT)/usr/include/c++/v1",
+    "OTHER_CPLUSPLUSFLAGS"         => folly_compiler_flags,
+    "CLANG_CXX_LANGUAGE_STANDARD"  => "c++17",
+    "CLANG_CXX_LIBRARY"            => "libc++"
   }
+
+  s.compiler_flags = folly_compiler_flags
 
   # React Native module dependencies
   if respond_to?(:install_modules_dependencies, true)
@@ -36,7 +44,6 @@ Pod::Spec.new do |s|
   else
     s.dependency "React-Core"
 
-    # New architecture support
     if ENV['RCT_NEW_ARCH_ENABLED'] == '1'
       s.compiler_flags += " -DRCT_NEW_ARCH_ENABLED=1"
       s.dependency     "React-Codegen"
