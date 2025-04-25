@@ -22,23 +22,22 @@ Pod::Spec.new do |s|
   s.static_framework = true
   s.module_name      = "FlexV2"
 
-  s.dependency       "flex-api-ios-sdk", :modular_headers => true
+  s.dependency       "flex-api-ios-sdk"
 
   s.pod_target_xcconfig = {
     "HEADER_SEARCH_PATHS" => [
       '"$(PODS_ROOT)/boost"',
       '"$(SDKROOT)/usr/include"',
-      '"$(SRCROOT)/../node_modules/react-native/ReactCommon/jsinspector-modern"'
+      '"$(SRCROOT)/../node_modules/react-native/ReactCommon/jsinspector-modern"',
+      '"$(SDKROOT)/usr/include/c++/v1"'
     ].join(" "),
-    "USER_HEADER_SEARCH_PATHS"     => "$(SDKROOT)/usr/include/c++/v1",
-    "OTHER_CPLUSPLUSFLAGS"         => folly_compiler_flags,
-    "CLANG_CXX_LANGUAGE_STANDARD"  => "c++17",
-    "CLANG_CXX_LIBRARY"            => "libc++"
+    "OTHER_CPLUSPLUSFLAGS"        => folly_compiler_flags,
+    "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
+    "CLANG_CXX_LIBRARY"           => "libc++"
   }
 
   s.compiler_flags = folly_compiler_flags
 
-  # React Native module dependencies
   if respond_to?(:install_modules_dependencies, true)
     install_modules_dependencies(s)
   else
