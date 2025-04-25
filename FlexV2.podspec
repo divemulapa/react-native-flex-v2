@@ -9,17 +9,20 @@ Pod::Spec.new do |s|
   s.summary          = package["description"]
   s.homepage         = package["homepage"]
   s.license          = package["license"]
-  s.authors          = package["author"]
+  # Ensure authors is an array to satisfy CocoaPods DSL
+  s.authors          = [package["author"]]
 
   s.platforms        = { :ios => min_ios_version_supported }
-  s.source           = { :git  => "https://github.com/divemulapa/react-native-flex-v2.git",
-                          :tag  => "#{s.version}" }
+  s.source           = {
+    :git => "https://github.com/divemulapa/react-native-flex-v2.git",
+    :tag => "#{s.version}"
+  }
 
   s.source_files     = "ios/**/*.{h,m,mm,swift}"
-  s.dependency       = "flex-api-ios-sdk"
+  s.dependency       "flex-api-ios-sdk"
 
   # Always apply Folly and C++17 settings
-  s.compiler_flags = folly_compiler_flags
+  s.compiler_flags     = folly_compiler_flags
   s.pod_target_xcconfig = {
     "HEADER_SEARCH_PATHS"         => '"$(PODS_ROOT)/boost"',
     "OTHER_CPLUSPLUSFLAGS"        => folly_compiler_flags,
