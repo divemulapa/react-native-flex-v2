@@ -3,74 +3,59 @@ import React
 import flex_api_ios_sdk
 
 @objc(FlexV2Module)
-class FlexV2Module: RCTEventEmitter {
+class FlexV2Module: NSObject, RCTBridgeModule {
 
   // MARK: - React Native Module Setup
 
-  @objc
-  override static func requiresMainQueueSetup() -> Bool {
-    // Our module does not require the main thread for init
-    return false
+  static func moduleName() -> String! {
+    return "FlexV2Module"
   }
 
-  @objc
-  override func supportedEvents() -> [String]! {
-    return []
+  static func requiresMainQueueSetup() -> Bool {
+    // If your module needs to run on the main thread, return true.
+    return true
   }
 
-  // Expose the module name to React Native
-  @objc
-  override func constantsToExport() -> [AnyHashable: Any]! {
-    return ["moduleName": "FlexV2Module"]
-  }
-
-  // MARK: - Methods
+  // MARK: - Public Methods
 
   /// Creates a transient token using the provided options.
   ///
   /// - Parameters:
   ///   - options: A dictionary containing "jwt" and "cardInfo".
-  /// - Returns: Promise resolving to token string or rejecting with an error.
-  @objc(createToken:resolver:rejecter:)
-  func createToken(
-    _ options: NSDictionary,
-    resolver resolve: @escaping RCTPromiseResolveBlock,
-    rejecter reject: @escaping RCTPromiseRejectBlock
-  ) {
-    // 1. Extract JWT and card info
-    guard let captureContext = options["jwt"] as? String,
-          let cardInfo     = options["cardInfo"] as? [String: String],
-          let number       = cardInfo["number"],
-          let expiryMonth  = cardInfo["expiryMonth"],
-          let expiryYear   = cardInfo["expiryYear"],
-          let cvv          = cardInfo["cvv"]
-    else {
-      reject("E_INVALID_PARAMS", "Missing or invalid parameters", nil)
-      return
-    }
+  ///   - callback: A callback block where the first element is an error (or NSNull if none) and the second is the token ID.
+  @objc(createToken:withCallback:)
+  func createToken(_ options: NSDictionary, withCallback callback: @escaping RCTResponseSenderBlock) {
+    let service = FlexService()
+    // Extract the JWT and card information
+    let captureContext = options["jwt"] as! String
+    let cardInfo = options["cardInfo"] as! NSDictionary
+    let cardNumber = cardInfo["number"] as! String
+    let expiryMonth = cardInfo["expiryMonth"] as! String
+    let expiryYear = cardInfo["expiryYear"] as! String
+    let cvv = cardInfo["cvv"] as! String
 
-    // 2. Prepare the payload
-    let payload: [String: String] = [
-      "number":          number,
-      "securityCode":    cvv,
-      "expirationMonth": expiryMonth,
-      "expirationYear":  expiryYear
-    ]
+    // Build payload with nested structure
+    var payload = [String: String]()
+    payload["number"] = cardNumber
+    payload["securityCode"] = cvv
+    payload["expirationMonth"] = expiryMonth
+    payload["expirationYear"] = expiryYear
 
-    // 3. Call the FlexService
-    FlexService().createTransientToken(from: captureContext, data: payload) { result in
+    service.createTransientToken(from: captureContext, data: payload) { (result) in
       switch result {
-      case .success(let tokenResponse):
-        resolve(["token": tokenResponse.token])
-      case .failure(let error):
-        // Map specific status codes if needed
-        let status = error.responseStatus.status
-        if status == 3000 {
-          // Example: a known Flex status code you care about
-          reject("E_FLEX_AUTH", error.responseStatus.message, error)
-        } else {
-          reject("E_TOKENIZE_FAILED", error.localizedDescription, error)
-        }
+        case .success(let tokenResponse):
+          // Pass the token ID back to JavaScript (using NSNull for no error)
+          callback([NSNull(), tokenResponse.token])
+        case .failure(let error):
+          // On failure, pass an error code and message.
+
+          let status = error.responseStatus.status
+          switch status {
+          case 3000:
+              print(error.responseStatus.message)
+          default:
+              callback(["UNKNOWN_ERROR", error.localizedDescription])
+          }
       }
     }
   }
